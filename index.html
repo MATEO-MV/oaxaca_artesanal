@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oaxaca Artesanal | Proyecto Escolar CBTIS 259</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        clay: '#8C4F3E',
+                        ochre: '#D99B59',
+                        darkGreen: '#1E3A2F',
+                        sand: '#FAF8F5',
+                        charcoal: '#222222'
+                    },
+                    fontFamily: {
+                        serif: ['Marcellus', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FAF8F5; color: #222222; overflow-x: hidden; }
+        h1, h2, h3, .font-serif { font-family: 'Marcellus', serif; }
+        html { scroll-behavior: smooth; }
+
+        /* =====================================================
+           CURSOR PERSONALIZADO
+        ===================================================== */
+        body { cursor: none; }
+        #cursor-dot {
+            width: 8px; height: 8px;
+            background: #D99B59;
+            border-radius: 50%;
+            position: fixed; top: 0; left: 0;
+            pointer-events: none; z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease, background 0.2s ease;
+        }
+        #cursor-ring {
+            width: 36px; height: 36px;
+            border: 1.5px solid rgba(217,155,89,0.5);
+            border-radius: 50%;
+            position: fixed; top: 0; left: 0;
+            pointer-events: none; z-index: 9998;
+            transform: translate(-50%, -50%);
+            transition: transform 0.12s ease, width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+        }
+        a:hover ~ #cursor-ring, button:hover ~ #cursor-ring { width: 52px; height: 52px; }
+
+        /* =====================================================
+           FONDO CON PARTÍCULAS DORADAS (canvas)neta?
+        ===================================================== */
+        #particles-canvas {
+            position: fixed; inset: 0; z-index: 0;
+            pointer-events: none; opacity: 0.35;
+        }
+
+        /* =====================================================
+           FOTO DON JOSÉ que riko — blanco/negro → color al hover
+        ===================================================== */
+        .foto-don-jose {
+            filter: grayscale(100%) contrast(1.05) brightness(0.93);
+            transition: filter 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: filter, transform;
+        }
+        .contenedor-don-jose:hover .foto-don-jose {
+            filter: grayscale(0%) contrast(1.1) brightness(1.05) saturate(1.2);
+            transform: scale(1.05);
+        }
+        .contenedor-don-jose {
+            position: relative; overflow: hidden; cursor: crosshair;
+        }
+        /* Marco dorado que aparece al hover */
+        .contenedor-don-jose::before {
+            content: '';
+            position: absolute; inset: 0;
+            border-radius: 20px;
+            box-shadow: inset 0 0 0 0px rgba(217,155,89,0);
+            transition: box-shadow 0.6s ease;
+            z-index: 3; pointer-events: none;
+        }
+        .contenedor-don-jose:hover::before {
+            box-shadow: inset 0 0 0 3px rgba(217,155,89,0.7);
+        }
+        /* Glow externo al hover */
+        .contenedor-don-jose:hover {
+            box-shadow: 0 0 32px 6px rgba(217,155,89,0.18), 0 8px 32px rgba(0,0,0,0.18);
+        }
+
+        /* =====================================================
+           SHIMMER EN TÍTULO HERO
+        ===================================================== */
+        @keyframes shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .shimmer-text {
+            background: linear-gradient(90deg, #fff 30%, #D99B59 48%, #fff8e8 55%, #fff 70%);
+            background-size: 200% auto;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 5s linear infinite;
+        }
+
+        /* =====================================================
+           ANIMACIONES DE ENTRADA (Intersection Observer)
+        ===================================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(36px);
+            transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.22s; }
+        .reveal-delay-3 { transition-delay: 0.36s; }
+        .reveal-delay-4 { transition-delay: 0.5s; }
+
+        /* =====================================================
+           HEADER CON BLUR DINÁMICO
+        ===================================================== */
+        header { transition: background 0.3s ease, box-shadow 0.3s ease; }
+        header.scrolled {
+            background: rgba(250,248,245,0.97) !important;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        }
+        /* Nav links — subrayado animado */
+        .nav-link {
+            position: relative; padding-bottom: 2px;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute; bottom: -2px; left: 0;
+            width: 0; height: 1.5px;
+            background: #1E3A2F;
+            transition: width 0.3s cubic-bezier(0.16,1,0.3,1);
+        }
+        .nav-link:hover::after { width: 100%; }
+
+        /* =====================================================
+           BOTÓN PRINCIPAL — glow pulsante
+        ===================================================== */
+        @keyframes btnGlow {
+            0%,100% { box-shadow: 0 0 0 0 rgba(30,58,47,0.4), 0 4px 16px rgba(30,58,47,0.25); }
+            50%      { box-shadow: 0 0 0 8px rgba(30,58,47,0), 0 4px 16px rgba(30,58,47,0.25); }
+        }
+        .btn-principal {
+            position: relative; overflow: hidden;
+            animation: btnGlow 3s ease-in-out infinite;
+            transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+        }
+        .btn-principal:hover { transform: translateY(-2px); }
+        /* Brillo interno al hover */
+        .btn-principal::after {
+            content: '';
+            position: absolute; top: -50%; left: -60%;
+            width: 40%; height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent);
+            transform: skewX(-20deg);
+            transition: left 0.5s ease;
+        }
+        .btn-principal:hover::after { left: 130%; }
+
+        /* =====================================================
+           TARJETAS DE CATEGORÍA — glow dorado
+        ===================================================== */
+        .cat-card-glow {
+            position: relative;
+            transition: transform 0.5s cubic-bezier(0.16,1,0.3,1),
+                        box-shadow 0.5s ease;
+        }
+        .cat-card-glow:hover {
+            box-shadow: 0 28px 56px -12px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(217,155,89,0.35);
+        }
+        /* Título con línea que crece */
+        .cat-card-glow h3::after {
+            content: '';
+            display: block; height: 1.5px; width: 0;
+            background: #D99B59;
+            margin-top: 6px;
+            transition: width 0.4s ease;
+        }
+        .cat-card-glow:hover h3::after { width: 40px; }
+        /* Overlay más cálido al hover */
+        .cat-card-glow .overlay-grad {
+            background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(140,79,62,0.15) 50%, transparent 100%);
+            transition: background 0.5s ease;
+        }
+        .cat-card-glow:hover .overlay-grad {
+            background: linear-gradient(to top, rgba(30,20,10,0.95) 0%, rgba(140,79,62,0.25) 50%, transparent 100%);
+        }
+
+        /* =====================================================
+           TARJETAS DE PRODUCTOS — hover refinado
+        ===================================================== */
+        .product-card {
+            transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+        }
+        .product-card:hover {
+            box-shadow: 0 20px 48px -10px rgba(140,79,62,0.22), 0 4px 12px rgba(0,0,0,0.06);
+        }
+        /* Imagen con zoom y saturación */
+        .product-card .img-product {
+            transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), filter 0.6s ease;
+        }
+        .product-card:hover .img-product {
+            transform: scale(1.08);
+            filter: brightness(1.08) saturate(1.1);
+        }
+        /* Badge con efecto */
+        .product-badge {
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+        .product-card:hover .product-badge {
+            background: #8C4F3E;
+            transform: translateY(-1px);
+        }
+
+        /* =====================================================
+           SECCIÓN TESTIMONIOS — fondo animado
+        ===================================================== */
+        #testimonios {
+            position: relative; overflow: hidden;
+        }
+        #testimonios::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(217,155,89,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* =====================================================
+           LÍNEA DECORATIVA ANIMADA
+        ===================================================== */
+        .linea-animada {
+            position: relative; overflow: hidden;
+        }
+        .linea-animada::after {
+            content: '';
+            position: absolute; left: -100%; top: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(217,155,89,0.7), transparent);
+            animation: lineaSweep 3s ease-in-out infinite;
+        }
+        @keyframes lineaSweep {
+            0%  { left: -100%; }
+            60% { left: 100%; }
+            100%{ left: 100%; }
+        }
+
+        /* =====================================================
+           TEXTO DE CITA — comillas decorativas
+        ===================================================== */
+        .cita-grande { position: relative; }
+        .cita-grande::before {
+            content: '\201C';
+            position: absolute; top: -24px; left: -20px;
+            font-size: 8rem; color: rgba(30,58,47,0.1);
+            font-family: 'Marcellus', serif;
+            line-height: 1; pointer-events: none; user-select: none;
+        }
+
+        /* =====================================================
+           BOTÓN WHATSAPP — pulso verde
+        ===================================================== */
+        @keyframes pulsaWA {
+            0%,100% { box-shadow: 0 0 0 0 rgba(37,211,102,0.5), 0 4px 20px rgba(37,211,102,0.3); }
+            50%      { box-shadow: 0 0 0 12px rgba(37,211,102,0), 0 4px 20px rgba(37,211,102,0.3); }
+        }
+        .btn-wa-pulsa {
+            animation: pulsaWA 2.4s ease-in-out infinite;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .btn-wa-pulsa:hover { transform: translateY(-3px) scale(1.04); }
+
+        /* =====================================================
+           FLOATING CTA
+        ===================================================== */
+        .fade-in-btn { animation: fadeInUp 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px) translateX(-50%); }
+            to   { opacity: 1; transform: translateY(0) translateX(-50%); }
+        }
+        @media (min-width: 768px) {
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to   { opacity: 1; transform: translateY(0); }
+            }
+        }
+
+        /* =====================================================
+           HERO — imagen de fondo con zoom suave
+        ===================================================== */
+        .hero-bg-img {
+            animation: heroZoom 18s ease-in-out infinite alternate;
+        }
+        @keyframes heroZoom {
+            from { transform: scale(1); }
+            to   { transform: scale(1.07); }
+        }
+
+        /* =====================================================
+           FOOTER GLOW
+        ===================================================== */
+        footer {
+            position: relative; overflow: hidden;
+        }
+        footer::before {
+            content: '';
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 60%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(217,155,89,0.4), transparent);
+        }
+
+        /* =====================================================
+           PRECIO — brillo al hover
+        ===================================================== */
+        .precio-tag {
+            transition: color 0.3s ease, letter-spacing 0.3s ease;
+        }
+        .product-card:hover .precio-tag {
+            color: #8C4F3E;
+            letter-spacing: 0.01em;
+        }
+
+        /* =====================================================
+           GRAIN OVERLAY sutil
+        ===================================================== */
+        body::after {
+            content: '';
+            position: fixed; inset: 0; z-index: 1;
+            pointer-events: none;
+            opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            background-size: 180px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen relative">
+
+    <!-- CURSOR PERSONALIZADO -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <!-- CANVAS PARTÍCULAS -->
+    <canvas id="particles-canvas"></canvas>
+
+    <header id="main-header" class="sticky top-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-gray-100/80">
+        <div class="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+            <div class="flex items-baseline space-x-2 reveal">
+                <span class="text-2xl tracking-wide text-charcoal font-serif">Oaxaca</span>
+                <span class="text-xs italic text-clay font-serif">Artesanal</span>
+            </div>
+            
+            <nav class="hidden md:flex space-x-10 text-sm font-medium text-gray-700">
+                <a href="#categorias" class="nav-link hover:text-darkGreen transition-colors">Textiles</a>
+                <a href="#categorias" class="nav-link hover:text-darkGreen transition-colors">Cerámica</a>
+                <a href="#categorias" class="nav-link hover:text-darkGreen transition-colors">Alebrijes</a>
+                <a href="#categorias" class="nav-link hover:text-darkGreen transition-colors">Joyería</a>
+            </nav>
+
+            <div class="reveal reveal-delay-2">
+                <a href="https://tally.so/r/NpdKEj" target="_blank" class="btn-principal bg-[#1E3A2F] text-white px-6 py-3 rounded-full text-sm font-medium tracking-wide hover:bg-black transition-all duration-300 shadow-md inline-block">
+                    Realizar Pedido
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative min-h-[65vh] flex items-center justify-center bg-charcoal text-white overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="https://i.ibb.co/7tyvXxdv/img-2.jpg" alt="Fondo Artesanal" class="hero-bg-img w-full h-full object-cover opacity-25 blur-[2px]">
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/75 to-charcoal/20 z-10"></div>
+        <!-- Destellos de luz decorativos -->
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-ochre/5 blur-3xl z-10 animate-pulse"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-clay/5 blur-3xl z-10" style="animation: pulse 4s ease-in-out infinite 1s;"></div>
+        
+        <div class="relative max-w-4xl mx-auto text-center px-4 z-20 space-y-6">
+            <span class="reveal text-xs tracking-[0.4em] uppercase text-ochre font-semibold">CBTIS 259 • Ofimática</span>
+            <h1 class="reveal reveal-delay-1 text-4xl sm:text-6xl font-light tracking-wide shimmer-text">
+                El alma de Oaxaca en cada detalle
+            </h1>
+            <p class="reveal reveal-delay-2 text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-light">
+                Desarrollado para la difusión y preservación de nuestra identidad cultural.
+            </p>
+            <div class="pt-4 flex flex-col sm:flex-row justify-center gap-4">
+                <a href="https://tally.so/r/NpdKEj" target="_blank"
+                   class="reveal reveal-delay-2 btn-principal bg-[#1E3A2F] text-white px-8 py-3.5 rounded-full text-sm font-medium hover:bg-white hover:text-charcoal transition-all duration-300 shadow-xl">
+                    Hacer Pedido
+                </a>
+                <a href="https://drive.google.com/file/d/1BnBo9s4lJQVjU3-iGusKK3yj54PFTkZC/view?usp=sharing" target="_blank"
+                   class="reveal reveal-delay-3 border border-white/60 bg-white/10 backdrop-blur-sm text-white px-8 py-3.5 rounded-full text-sm hover:bg-white hover:text-charcoal transition-all duration-300 relative overflow-hidden group">
+                    <span class="relative z-10">Descargar Catálogo PDF</span>
+                    <span class="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full"></span>
+                    <span class="absolute inset-0 flex items-center justify-center text-charcoal opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm z-20">Descargar Catálogo PDF</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- NOSOTROS -->
+    <section id="nosotros" class="py-16 bg-white relative overflow-hidden">
+        <div class="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-sand opacity-80 blur-2xl pointer-events-none"></div>
+        <div class="max-w-4xl mx-auto px-6 text-center space-y-4 relative z-10">
+            <span class="reveal text-xs tracking-[0.3em] uppercase text-clay font-bold">Proyecto Escolar</span>
+            <h2 class="reveal reveal-delay-1 text-3xl font-light tracking-wide text-charcoal">Acerca de Nosotros</h2>
+            <div class="reveal reveal-delay-2 linea-animada h-0.5 w-12 bg-clay mx-auto"></div>
+            <p class="reveal reveal-delay-3 text-gray-600 leading-relaxed text-base font-light max-w-2xl mx-auto">
+                Este sitio web nace como parte de un proyecto de la materia de <strong>Ofimática</strong> del <strong>Centro de Bachillerato Tecnológico, Industrial y de Servicios No. 259 (CBTIS 259)</strong>. Su propósito es aplicar los conocimientos adquiridos en clase para diseñar y desarrollar páginas web funcionales, útiles y con identidad cultural.
+            </p>
+        </div>
+    </section>
+
+    <!-- CATEGORÍAS -->
+    <section id="categorias" class="py-16 bg-[#FAF8F5]">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex items-center mb-10">
+                <h2 class="reveal text-5xl font-normal text-charcoal tracking-wide font-serif">categorías</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                <div class="reveal cat-card-glow relative h-[480px] rounded-[24px] overflow-hidden group shadow-sm cursor-pointer bg-charcoal">
+                    <img src="https://i.ibb.co/TDGzxhsv/oaxacan-textiles.webp" alt="Textiles" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90">
+                    <div class="overlay-grad absolute inset-0 flex flex-col justify-end p-6">
+                        <h3 class="text-2xl font-serif text-white mb-1">Textiles</h3>
+                        <div class="max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover:max-h-32 group-hover:opacity-100">
+                            <p class="text-[12px] text-gray-300 leading-relaxed font-light pt-2">Lienzos y prendas tradicionales creados en telar de cintura y pedal con hilos teñidos naturalmente.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reveal reveal-delay-1 cat-card-glow relative h-[480px] rounded-[24px] overflow-hidden group shadow-sm cursor-pointer bg-charcoal">
+                    <img src="https://i.ibb.co/RnsHsMN/p229828-1.webp" alt="Cerámica" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90">
+                    <div class="overlay-grad absolute inset-0 flex flex-col justify-end p-6">
+                        <h3 class="text-2xl font-serif text-white mb-1">Cerámica</h3>
+                        <div class="max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover:max-h-32 group-hover:opacity-100">
+                            <p class="text-[12px] text-gray-300 leading-relaxed font-light pt-2">Barro negro legítimo de San Bartolo Coyotepec, modelado y pulido minuciosamente a mano.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reveal reveal-delay-2 cat-card-glow relative h-[480px] rounded-[24px] overflow-hidden group shadow-sm cursor-pointer bg-charcoal">
+                    <img src="https://i.ibb.co/NgCrYGSR/alebrijes-en-oaxaca-940x626.webp" alt="Alebrijes" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90">
+                    <div class="overlay-grad absolute inset-0 flex flex-col justify-end p-6">
+                        <h3 class="text-2xl font-serif text-white mb-1">Alebrijes</h3>
+                        <div class="max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover:max-h-32 group-hover:opacity-100">
+                            <p class="text-[12px] text-gray-300 leading-relaxed font-light pt-2">Figuras místicas talladas en madera de copal y pintadas con detalladas grecas zapotecas.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reveal reveal-delay-3 cat-card-glow relative h-[480px] rounded-[24px] overflow-hidden group shadow-sm cursor-pointer bg-charcoal">
+                    <img src="https://i.ibb.co/sJgbsSQx/D-NQ-NP-972725-MLM74108584627-012024-O.webp" alt="Joyería" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90">
+                    <div class="overlay-grad absolute inset-0 flex flex-col justify-end p-6">
+                        <h3 class="text-2xl font-serif text-white mb-1">Joyería</h3>
+                        <div class="max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover:max-h-32 group-hover:opacity-100">
+                            <p class="text-[12px] text-gray-300 leading-relaxed font-light pt-2">Piezas únicas de filigrana y plata ley .925 combinadas con elementos tradicionales de la región.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- PRODUCTOS DESTACADOS -->
+    <section id="destacados" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="mb-10">
+                <h2 class="reveal text-3xl font-serif text-charcoal tracking-wide">Productos Destacados</h2>
+                <div class="reveal linea-animada h-0.5 w-12 bg-clay mt-2"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-4">
+                
+                <div onclick="selectProduct(this)" class="reveal product-card p-4 rounded-2xl border border-transparent hover:border-ochre/40 cursor-pointer bg-[#FAF8F5] flex flex-col justify-between group">
+                    <div class="space-y-4">
+                        <div class="aspect-[4/3] rounded-xl bg-zinc-100 overflow-hidden relative shadow-sm">
+                            <span class="product-badge absolute top-3 left-3 bg-black text-white text-[9px] font-bold px-2 py-1 tracking-wider z-10 uppercase">Barro Negro</span>
+                            <img src="https://i.ibb.co/7tyvXxdv/img-2.jpg" alt="Jarrón de Barro Negro" class="img-product w-full h-full object-cover">
+                        </div>
+                        <div class="flex justify-between items-baseline">
+                            <h3 class="text-sm font-semibold text-charcoal font-sans">Jarrón de Barro Negro</h3>
+                            <span class="precio-tag text-xs font-semibold text-[#8C4F3E] whitespace-nowrap">$1,280 MXN</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 leading-relaxed font-light">Elegante jarrón de barro negro pulido a mano, elaborado en San Bartolo Coyotepec.</p>
+                    </div>
+                </div>
+
+                <div onclick="selectProduct(this)" class="reveal reveal-delay-1 product-card p-4 rounded-2xl border border-transparent hover:border-ochre/40 cursor-pointer bg-[#FAF8F5] flex flex-col justify-between group">
+                    <div class="space-y-4">
+                        <div class="aspect-[4/3] rounded-xl bg-zinc-100 overflow-hidden relative shadow-sm">
+                            <span class="product-badge absolute top-3 left-3 bg-black text-white text-[9px] font-bold px-2 py-1 tracking-wider z-10 uppercase">Textiles</span>
+                            <img src="https://i.ibb.co/FQP1V8F/img-11.jpg" alt="Tapiz Zapoteca Diamantes" class="img-product w-full h-full object-cover">
+                        </div>
+                        <div class="flex justify-between items-baseline">
+                            <h3 class="text-sm font-semibold text-charcoal font-sans">Tapiz Zapoteca Diamantes</h3>
+                            <span class="precio-tag text-xs font-semibold text-[#8C4F3E] whitespace-nowrap">$3,450 MXN</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 leading-relaxed font-light">Tapiz tejido en lana 100% natural sobre telar de cintura con diseño geométrico tradicional.</p>
+                    </div>
+                </div>
+
+                <div onclick="selectProduct(this)" class="reveal reveal-delay-2 product-card p-4 rounded-2xl border border-transparent hover:border-ochre/40 cursor-pointer bg-[#FAF8F5] flex flex-col justify-between group">
+                    <div class="space-y-4">
+                        <div class="aspect-[4/3] rounded-xl bg-zinc-100 overflow-hidden relative shadow-sm">
+                            <span class="product-badge absolute top-3 left-3 bg-black text-white text-[9px] font-bold px-2 py-1 tracking-wider z-10 uppercase">Alebrijes</span>
+                            <img src="https://i.ibb.co/5XkdFzgk/img-24.jpg" alt="Alebrije Coyote Nocturno" class="img-product w-full h-full object-cover">
+                        </div>
+                        <div class="flex justify-between items-baseline">
+                            <h3 class="text-sm font-semibold text-charcoal font-sans">Alebrije Coyote Nocturno</h3>
+                            <span class="precio-tag text-xs font-semibold text-[#8C4F3E] whitespace-nowrap">$2,150 MXN</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 leading-relaxed font-light">Alebrije tallado en madera de copal y pintado a mano con acrílicos vibrantes.</p>
+                    </div>
+                </div>
+
+                <div onclick="selectProduct(this)" class="reveal product-card p-4 rounded-2xl border border-transparent hover:border-ochre/40 cursor-pointer bg-[#FAF8F5] flex flex-col justify-between group">
+                    <div class="space-y-4">
+                        <div class="aspect-[4/3] rounded-xl bg-zinc-100 overflow-hidden relative shadow-sm">
+                            <span class="product-badge absolute top-3 left-3 bg-black text-white text-[9px] font-bold px-2 py-1 tracking-wider z-10 uppercase">Joyería</span>
+                            <img src="https://i.ibb.co/39R9Rt2N/img-36.jpg" alt="Collar de Ámbar" class="img-product w-full h-full object-cover">
+                        </div>
+                        <div class="flex justify-between items-baseline">
+                            <h3 class="text-sm font-semibold text-charcoal font-sans">Collar de Filigrana</h3>
+                            <span class="precio-tag text-xs font-semibold text-[#8C4F3E] whitespace-nowrap">$1,890 MXN</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 leading-relaxed font-light">Collar artesanal con baño dorado y cuentas tradicionales, un clásico de la joyería regional.</p>
+                    </div>
+                </div>
+
+                <div onclick="selectProduct(this)" class="reveal reveal-delay-1 product-card p-4 rounded-2xl border border-transparent hover:border-ochre/40 cursor-pointer bg-[#FAF8F5] flex flex-col justify-between group">
+                    <div class="space-y-4">
+                        <div class="aspect-[4/3] rounded-xl bg-zinc-100 overflow-hidden relative shadow-sm">
+                            <span class="product-badge absolute top-3 left-3 bg-black text-white text-[9px] font-bold px-2 py-1 tracking-wider z-10 uppercase">Textiles</span>
+                            <img src="https://i.ibb.co/RpCJPWqz/img-13.jpg" alt="Blusa Bordada Istmeña" class="img-product w-full h-full object-cover">
+                        </div>
+                        <div class="flex justify-between items-baseline">
+                            <h3 class="text-sm font-semibold text-charcoal font-sans">Blusa Blanca Decorada</h3>
+                            <span class="precio-tag text-xs font-semibold text-[#8C4F3E] whitespace-nowrap">$1,680 MXN</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 leading-relaxed font-light">Blusa tradicional de base blanca con finas decoraciones de hilos multicolor hechos a mano.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIO DON JOSÉ -->
+    <section id="testimonios" class="py-14 bg-[#FAF8F5] border-t border-gray-200">
+        <div class="max-w-4xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            <div class="space-y-4 md:col-span-2 cita-grande reveal">
+                <div class="text-3xl text-[#1E3A2F] font-serif leading-none">"</div>
+                <h2 class="text-2xl md:text-3xl font-normal tracking-wide text-charcoal leading-snug font-serif">
+                    Cada pieza lleva el alma de Oaxaca <span class="italic text-gray-600 font-light">y sus manos</span>
+                </h2>
+                <div class="pt-2">
+                    <span class="text-xs font-bold text-charcoal tracking-wide">Don José</span>
+                    <p class="text-[11px] text-gray-400">San Antonino Castillo Velasco, Oaxaca</p>
+                </div>
+            </div>
+            <div class="reveal reveal-delay-2 flex justify-center md:justify-end">
+                <div class="contenedor-don-jose w-full max-w-[200px] aspect-[4/5] rounded-[20px] shadow-lg bg-zinc-100"
+                     style="transition: box-shadow 0.6s ease;">
+                    <img src="https://i.ibb.co/jkcKtQZf/don-jose.webp"
+                         alt="Don José"
+                         class="foto-don-jose w-full h-full object-cover rounded-[20px]">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-charcoal text-white/90 pt-12 pb-6">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center text-[11px] text-gray-500">
+            <p>&copy; 2026 CBTIS 259. Diseñado con Tailwind CSS.</p>
+            <p>Oaxaca, México.</p>
+        </div>
+    </footer>
+
+    <!-- WhatsApp -->
+    <div class="fixed bottom-6 left-6 z-50">
+        <a href="https://wa.me/529512750274" target="_blank"
+           class="btn-wa-pulsa flex items-center space-x-2 bg-[#25D366] text-white px-5 py-3 rounded-full shadow-2xl hover:bg-[#20ba56]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            <span>Dudas por WhatsApp</span>
+        </a>
+    </div>
+
+    <!-- Floating CTA -->
+    <div id="floating-cta" class="hidden fixed bottom-6 left-1/2 md:left-auto md:right-8 z-50 fade-in-btn w-[90%] md:w-auto">
+        <a href="https://tally.so/r/NpdKEj" target="_blank"
+           class="btn-principal block text-center bg-[#1E3A2F] text-white font-medium text-sm px-10 py-3.5 rounded-full shadow-2xl">
+            Hacer Pedido
+        </a>
+    </div>
+
+    <script>
+        /* ── CURSOR PERSONALIZADO ── */
+        const dot  = document.getElementById('cursor-dot');
+        const ring = document.getElementById('cursor-ring');
+        let mx = 0, my = 0, rx = 0, ry = 0;
+        document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+        (function animCursor() {
+            rx += (mx - rx) * 0.14;
+            ry += (my - ry) * 0.14;
+            dot.style.left  = mx + 'px';
+            dot.style.top   = my + 'px';
+            ring.style.left = rx + 'px';
+            ring.style.top  = ry + 'px';
+            requestAnimationFrame(animCursor);
+        })();
+        document.querySelectorAll('a, button').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                ring.style.width  = '52px';
+                ring.style.height = '52px';
+                ring.style.borderColor = 'rgba(217,155,89,0.8)';
+                dot.style.transform = 'translate(-50%,-50%) scale(1.5)';
+            });
+            el.addEventListener('mouseleave', () => {
+                ring.style.width  = '36px';
+                ring.style.height = '36px';
+                ring.style.borderColor = 'rgba(217,155,89,0.5)';
+                dot.style.transform = 'translate(-50%,-50%) scale(1)';
+            });
+        });
+
+        /* ── PARTÍCULAS DORADAS ── */
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+        function resize() {
+            W = canvas.width  = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * W;
+                this.y = Math.random() * H;
+                this.r = Math.random() * 1.6 + 0.3;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = -Math.random() * 0.5 - 0.1;
+                this.alpha = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.alpha -= 0.001;
+                if (this.y < -5 || this.alpha <= 0) this.reset();
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(217,155,89,${this.alpha})`;
+                ctx.fill();
+            }
+        }
+        for (let i = 0; i < 80; i++) particles.push(new Particle());
+        (function animParticles() {
+            ctx.clearRect(0, 0, W, H);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animParticles);
+        })();
+
+        /* ── INTERSECTION OBSERVER — reveal ── */
+        const revealEls = document.querySelectorAll('.reveal');
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+            });
+        }, { threshold: 0.12 });
+        revealEls.forEach(el => io.observe(el));
+
+        /* ── HEADER SCROLL ── */
+        const header = document.getElementById('main-header');
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('scrolled', window.scrollY > 40);
+        });
+
+        /* ── SELECCIÓN DE PRODUCTO ── */
+        function selectProduct(element) {
+            const cards = document.querySelectorAll('.product-card');
+            cards.forEach(card => {
+                card.classList.remove('border-ochre', 'shadow-xl', 'bg-white');
+                card.classList.add('border-transparent', 'bg-[#FAF8F5]');
+            });
+            element.classList.remove('border-transparent', 'bg-[#FAF8F5]');
+            element.classList.add('border-ochre', 'shadow-xl', 'bg-white');
+            document.getElementById('floating-cta').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
